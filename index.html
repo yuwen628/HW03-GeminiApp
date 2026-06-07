@@ -67,19 +67,19 @@
                         <input type="radio" name="model" value="imagen-4.0" checked class="absolute right-4 top-4 accent-brand-yellow">
                         <span class="font-semibold text-white flex items-center gap-2">
                             Gemini Imagen 4.0
-                            <span class="bg-brand-yellow/10 text-brand-yellow text-[10px] px-2 py-0.5 rounded-full">原生免 Token</span>
+                            <span class="bg-brand-yellow/10 text-brand-yellow text-[10px] px-2 py-0.5 rounded-full">免 Token</span>
                         </span>
                         <span class="text-xs text-gray-400 mt-1">Google 最新高解析度生成，免任何 Token、連線最穩定</span>
                     </label>
 
-                    <!-- 模型 2 -->
+                    <!-- 模型 2 (專屬高画質高速優化路由) -->
                     <label class="relative flex flex-col p-4 bg-brand-cardGray border-2 border-transparent rounded-xl cursor-pointer transition hover:border-zinc-700">
                         <input type="radio" name="model" value="black-forest-labs/FLUX.1-schnell" class="absolute right-4 top-4 accent-brand-yellow">
                         <span class="font-semibold text-white flex items-center gap-2">
                             FLUX.1-schnell
-                            <span class="bg-zinc-800 text-zinc-400 text-[10px] px-2 py-0.5 rounded-full">需 HF Token</span>
+                            <span class="bg-brand-yellow text-black text-[10px] px-2 py-0.5 rounded-full font-bold">高速路由優化</span>
                         </span>
-                        <span class="text-xs text-gray-400 mt-1">最新極速高品質模型，文字細節極佳</span>
+                        <span class="text-xs text-gray-400 mt-1">使用專屬 NScale 路由節點與 Base64 格式傳輸，最快且不易阻擋</span>
                     </label>
 
                     <!-- 模型 3 -->
@@ -462,7 +462,7 @@
                 let imgUrl = "";
 
                 if (activeModel === "imagen-4.0") {
-                    // 使用原生免 Token 的 Imagen 4.0 模型 (使用內建的自動回退重試機制)
+                    // 使用原生免 Token 的 Imagen 4.0 模型
                     document.getElementById('loadingStatusText').innerText = "正在使用 Google Imagen 4.0 繪製高解析畫布...";
                     
                     let retries = 5;
@@ -504,8 +504,42 @@
 
                     imgUrl = `data:image/png;base64,${base64Data}`;
 
+                } else if (activeModel === "black-forest-labs/FLUX.1-schnell") {
+                    // 使用您提供的 NScale 優化路由
+                    document.getElementById('loadingStatusText').innerText = "正在使用優化路由與 Base64 格式呼叫 FLUX.1-schnell...";
+                    
+                    const response = await fetch("https://router.huggingface.co/nscale/v1/images/generations", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            ...(hfToken ? { "Authorization": `Bearer ${hfToken}` } : {})
+                        },
+                        body: JSON.stringify({
+                            response_format: "b64_json",
+                            prompt: prompt,
+                            model: "black-forest-labs/FLUX.1-schnell"
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        if (response.status === 401) {
+                            throw new Error("您的 Hugging Face Token 無效或尚未設定，請在右上角設定 Token。");
+                        } else {
+                            throw new Error(`FLUX 優化路由器出錯: ${response.status} - ${errText}`);
+                        }
+                    }
+
+                    const result = await response.json();
+                    const base64Data = result.data?.[0]?.b64_json;
+                    if (!base64Data) {
+                        throw new Error("API 未傳回預期的 Base64 圖像數據。");
+                    }
+
+                    imgUrl = `data:image/png;base64,${base64Data}`;
+
                 } else {
-                    // 使用 Hugging Face 系列模型
+                    // 使用 Hugging Face 其他傳統 Serverless 系列模型
                     document.getElementById('loadingStatusText').innerText = `正在透過 Hugging Face 調度 ${activeModel.split('/').pop()} 模型...`;
                     
                     const response = await fetch(`https://api-inference.huggingface.co/models/${activeModel}`, {
