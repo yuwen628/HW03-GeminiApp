@@ -1,5 +1,5 @@
 
-Demo Website: https://yuwen628.github.io/WH3-WebApp/
+Demo Website: https://yuwen628.github.io/HW03-GeminiApp/
 
 # WH3-WebApp — AI 畫布生成器
 
